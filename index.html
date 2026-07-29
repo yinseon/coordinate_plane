@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>좌표평면 생성기</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%232f5d50' d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css" rel="stylesheet">
 <style>
   :root{
@@ -21,17 +22,19 @@
     color:var(--ink);
   }
   header{
-    padding:28px 32px 18px;
-    border-bottom:1px solid var(--line);
+    padding:22px 32px;
+    background:var(--accent);
+    color:#ffffff;
   }
   header h1{
     margin:0 0 4px;
     font-size:22px;
     letter-spacing:0.5px;
+    color:#ffffff;
   }
   header p{
     margin:0;
-    color:#6b675e;
+    color:rgba(255,255,255,0.82);
     font-size:13.5px;
   }
   .layout{
@@ -46,6 +49,22 @@
     padding:24px 28px;
     border-right:1px solid var(--line);
     min-height:calc(100vh - 92px);
+  }
+  .section{
+    margin-bottom:26px;
+    padding-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .section:last-of-type{
+    border-bottom:none;
+  }
+  .section-title{
+    font-size:15.6px;
+    font-weight:700;
+    letter-spacing:0.8px;
+    color:var(--accent);
+    text-transform:uppercase;
+    margin:0 0 14px;
   }
   .field{
     margin-bottom:16px;
@@ -155,32 +174,52 @@
 <div class="layout">
   <div class="panel">
 
-    <div class="field">
-      <label>x축 범위 (최소 / 최대)</label>
-      <div class="row2">
-        <input type="number" id="xMin" value="-3" step="1">
-        <input type="number" id="xMax" value="3" step="1">
+    <div class="section">
+      <p class="section-title">범위</p>
+      <div class="field">
+        <label>x축 범위 (최소 / 최대)</label>
+        <div class="row2">
+          <input type="number" id="xMin" value="-3" step="1">
+          <input type="number" id="xMax" value="3" step="1">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>y축 범위 (최소 / 최대)</label>
+        <div class="row2">
+          <input type="number" id="yMin" value="-5" step="1">
+          <input type="number" id="yMax" value="5" step="1">
+        </div>
       </div>
     </div>
 
-    <div class="field">
-      <label>y축 범위 (최소 / 최대)</label>
-      <div class="row2">
-        <input type="number" id="yMin" value="-5" step="1">
-        <input type="number" id="yMax" value="5" step="1">
+    <div class="section">
+      <p class="section-title">간격</p>
+      <div class="field">
+        <label>눈금 표시(숫자) 간격</label>
+        <input type="number" id="tickStep" value="2" min="1" step="1">
+        <div class="hint">모눈 한 칸은 항상 한 변의 길이 1로 고정되며, 이 값은 축 위에 숫자가 표시되는 간격입니다.</div>
+      </div>
+
+      <div class="field">
+        <label>모눈 한 칸 크기 (px)</label>
+        <input type="number" id="cellPx" value="48" min="16" max="160" step="1">
+        <div class="hint">숫자를 키우면 그림 전체가 커지고(칸 하나하나가 커짐), 줄이면 작아집니다.</div>
       </div>
     </div>
 
-    <div class="field">
-      <label>눈금 표시(숫자) 간격</label>
-      <input type="number" id="tickStep" value="2" min="1" step="1">
-      <div class="hint">모눈 한 칸은 항상 한 변의 길이 1로 고정되며, 이 값은 축 위에 숫자가 표시되는 간격입니다.</div>
-    </div>
+    <div class="section">
+      <p class="section-title">폰트 크기</p>
+      <div class="field">
+        <label>x, y, O(원점) 크기 (px)</label>
+        <input type="number" id="labelFontPx" value="40" min="8" max="200" step="1">
+      </div>
 
-    <div class="field">
-      <label>모눈 한 칸 크기 (px)</label>
-      <input type="number" id="cellPx" value="48" min="16" max="160" step="1">
-      <div class="hint">숫자를 키우면 그림 전체가 커지고(칸 하나하나가 커짐), 줄이면 작아집니다.</div>
+      <div class="field">
+        <label>축 위의 숫자 크기 (px)</label>
+        <input type="number" id="tickFontPx" value="27" min="6" max="200" step="1">
+        <div class="hint">모눈 한 칸 크기나 눈금 간격을 바꿔도 이 값들은 그대로 유지되니, 필요하면 직접 조정해 주세요.</div>
+      </div>
     </div>
 
     <button class="btn-primary" id="renderBtn">좌표평면 그리기</button>
@@ -223,20 +262,24 @@ function getConfig(){
   const yMax = parseInt(document.getElementById('yMax').value, 10);
   const tickStep = parseInt(document.getElementById('tickStep').value, 10);
   const cellPx = parseInt(document.getElementById('cellPx').value, 10);
+  const labelFontPx = parseInt(document.getElementById('labelFontPx').value, 10);
+  const tickFontPx = parseInt(document.getElementById('tickFontPx').value, 10);
 
-  if ([xMin,xMax,yMin,yMax,tickStep,cellPx].some(v => Number.isNaN(v))) {
+  if ([xMin,xMax,yMin,yMax,tickStep,cellPx,labelFontPx,tickFontPx].some(v => Number.isNaN(v))) {
     throw new Error('모든 값을 올바른 정수로 입력해 주세요.');
   }
   if (xMin >= xMax) throw new Error('x축 최소값은 최대값보다 작아야 합니다.');
   if (yMin >= yMax) throw new Error('y축 최소값은 최대값보다 작아야 합니다.');
   if (tickStep < 1) throw new Error('눈금 표시 간격은 1 이상이어야 합니다.');
   if (cellPx < 16) throw new Error('칸 크기가 너무 작습니다.');
+  if (labelFontPx < 8) throw new Error('x, y, O 크기가 너무 작습니다.');
+  if (tickFontPx < 6) throw new Error('축 위의 숫자 크기가 너무 작습니다.');
 
-  return {xMin,xMax,yMin,yMax,tickStep,cellPx};
+  return {xMin,xMax,yMin,yMax,tickStep,cellPx,labelFontPx,tickFontPx};
 }
 
 function drawPlane(cfg){
-  const {xMin,xMax,yMin,yMax,tickStep,cellPx} = cfg;
+  const {xMin,xMax,yMin,yMax,tickStep,cellPx,labelFontPx,tickFontPx} = cfg;
 
   const unit = cellPx;
   const outerMargin = Math.max(24, unit * 0.35); // just breathing room around the border
@@ -300,8 +343,9 @@ function drawPlane(cfg){
   ctx.lineCap = 'round';
 
   const italicFont = (sizePx) => `italic 400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
-  const labelFontSize = Math.round(unit * 0.56 * 1.5); // O, x, y — all the same size
-  const tickFontSize = Math.round(unit * 0.44 * 1.3);  // tick numbers — bigger than before, still smaller than labels
+  const romanFont = (sizePx) => `400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
+  const labelFontSize = labelFontPx; // O, x, y — all the same size, set directly by the user
+  const tickFontSize = tickFontPx;   // tick numbers — set directly by the user
 
   // x-axis: from left border to right border, arrow tip flush with the right border
   if (originInRangeY){
@@ -344,7 +388,7 @@ function drawPlane(cfg){
   }
 
   // ---- tick numbers ----
-  ctx.font = italicFont(tickFontSize);
+  ctx.font = romanFont(tickFontSize);
   ctx.fillStyle = '#000000';
 
   // x-axis numbers (below axis)
@@ -427,6 +471,7 @@ document.getElementById('downloadJpg').addEventListener('click', () => download(
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     await document.fonts.load("italic 400 48px 'Computer Modern Serif'");
+    await document.fonts.load("400 48px 'Computer Modern Serif'");
     await document.fonts.ready;
   } catch (e) { /* fall back silently if webfont fails to load */ }
   render();

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>좌표평면 생성기</title>
+<link href="https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbfaf7;
+    --ink:#1c1c1c;
+    --line:#c9c4b8;
+    --accent:#2f5d50;
+    --accent-soft:#e7efec;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  header{
+    padding:28px 32px 18px;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:22px;
+    letter-spacing:0.5px;
+  }
+  header p{
+    margin:0;
+    color:#6b675e;
+    font-size:13.5px;
+  }
+  .layout{
+    display:flex;
+    gap:0;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .panel{
+    width:320px;
+    flex:0 0 320px;
+    padding:24px 28px;
+    border-right:1px solid var(--line);
+    min-height:calc(100vh - 92px);
+  }
+  .field{
+    margin-bottom:16px;
+  }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:#5a564d;
+    margin-bottom:5px;
+    font-weight:600;
+    letter-spacing:0.2px;
+  }
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  input[type=number], select{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid #cfcabd;
+    border-radius:4px;
+    background:#fff;
+    font-size:14px;
+    color:var(--ink);
+  }
+  input[type=number]:focus, select:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  .hint{
+    font-size:11.5px;
+    color:#8a8578;
+    margin-top:4px;
+  }
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:4px;
+    font-size:14px;
+    padding:10px 14px;
+    font-weight:600;
+  }
+  .btn-primary{
+    width:100%;
+    background:var(--accent);
+    color:#fff;
+    margin-top:6px;
+  }
+  .btn-primary:hover{background:#264c41;}
+  .download-row{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+  }
+  .btn-secondary{
+    flex:1;
+    background:var(--accent-soft);
+    color:var(--accent);
+    border:1px solid var(--accent);
+  }
+  .btn-secondary:hover{background:#dcebe5;}
+  .field-name{
+    margin-top:18px;
+  }
+  .stage{
+    flex:1;
+    min-width:320px;
+    padding:32px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .canvas-wrap{
+    background:#fff;
+    border:1px solid var(--line);
+    padding:14px;
+    max-width:100%;
+    overflow:auto;
+  }
+  canvas{
+    display:block;
+    max-width:100%;
+    height:auto;
+  }
+  .error{
+    color:#a33;
+    font-size:12.5px;
+    margin-top:8px;
+    display:none;
+  }
+  footer{
+    text-align:center;
+    color:#a29d90;
+    font-size:11.5px;
+    padding:18px 0 30px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>좌표평면 생성기</h1>
+  <p>범위와 눈금 간격을 설정하고 모눈 좌표평면을 PNG 또는 JPG 이미지로 저장하세요.</p>
+</header>
+
+<div class="layout">
+  <div class="panel">
+
+    <div class="field">
+      <label>x축 범위 (최소 / 최대)</label>
+      <div class="row2">
+        <input type="number" id="xMin" value="-3" step="1">
+        <input type="number" id="xMax" value="3" step="1">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>y축 범위 (최소 / 최대)</label>
+      <div class="row2">
+        <input type="number" id="yMin" value="-5" step="1">
+        <input type="number" id="yMax" value="5" step="1">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>눈금 표시(숫자) 간격</label>
+      <input type="number" id="tickStep" value="2" min="1" step="1">
+      <div class="hint">모눈 한 칸은 항상 한 변의 길이 1로 고정되며, 이 값은 축 위에 숫자가 표시되는 간격입니다.</div>
+    </div>
+
+    <div class="field">
+      <label>한 칸(1)의 픽셀 크기</label>
+      <input type="number" id="cellPx" value="48" min="16" max="160" step="1">
+    </div>
+
+    <button class="btn-primary" id="renderBtn">좌표평면 그리기</button>
+    <div class="error" id="errorBox"></div>
+
+    <div class="field field-name">
+      <label>저장 파일명</label>
+      <input type="text" id="fileName" value="coordinate-plane">
+    </div>
+
+    <div class="download-row">
+      <button class="btn-secondary" id="downloadPng">PNG로 저장</button>
+      <button class="btn-secondary" id="downloadJpg">JPG로 저장</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="canvas-wrap">
+      <canvas id="plane"></canvas>
+    </div>
+  </div>
+</div>
+
+<footer>Coordinate Plane Generator · Static page, all rendering happens in your browser.</footer>
+
+<script>
+const canvas = document.getElementById('plane');
+const ctx = canvas.getContext('2d');
+const errorBox = document.getElementById('errorBox');
+
+function showError(msg){
+  errorBox.textContent = msg;
+  errorBox.style.display = msg ? 'block' : 'none';
+}
+
+function getConfig(){
+  const xMin = parseInt(document.getElementById('xMin').value, 10);
+  const xMax = parseInt(document.getElementById('xMax').value, 10);
+  const yMin = parseInt(document.getElementById('yMin').value, 10);
+  const yMax = parseInt(document.getElementById('yMax').value, 10);
+  const tickStep = parseInt(document.getElementById('tickStep').value, 10);
+  const cellPx = parseInt(document.getElementById('cellPx').value, 10);
+
+  if ([xMin,xMax,yMin,yMax,tickStep,cellPx].some(v => Number.isNaN(v))) {
+    throw new Error('모든 값을 올바른 정수로 입력해 주세요.');
+  }
+  if (xMin >= xMax) throw new Error('x축 최소값은 최대값보다 작아야 합니다.');
+  if (yMin >= yMax) throw new Error('y축 최소값은 최대값보다 작아야 합니다.');
+  if (tickStep < 1) throw new Error('눈금 표시 간격은 1 이상이어야 합니다.');
+  if (cellPx < 16) throw new Error('칸 크기가 너무 작습니다.');
+
+  return {xMin,xMax,yMin,yMax,tickStep,cellPx};
+}
+
+function drawPlane(cfg){
+  const {xMin,xMax,yMin,yMax,tickStep,cellPx} = cfg;
+
+  const unit = cellPx;
+  const outerMargin = Math.max(24, unit * 0.35); // just breathing room around the border
+  const gridW = (xMax - xMin) * unit;
+  const gridH = (yMax - yMin) * unit;
+  const W = gridW + outerMargin * 2;
+  const H = gridH + outerMargin * 2;
+
+  // retina-ish scale for crisper export
+  const scale = 2;
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(scale,0,0,scale,0,0);
+
+  // background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  const gridLeft = outerMargin;
+  const gridRight = outerMargin + gridW;
+  const gridTop = outerMargin;
+  const gridBottom = outerMargin + gridH;
+
+  const px = (x) => gridLeft + (x - xMin) * unit;
+  const py = (y) => gridTop + (yMax - y) * unit;
+
+  const originInRangeX = xMin <= 0 && 0 <= xMax;
+  const originInRangeY = yMin <= 0 && 0 <= yMax;
+
+  // ---- grid lines (gray) + outer border (black, same thickness) ----
+  const gridLineWidth = Math.max(1, unit / 48);
+  ctx.lineWidth = gridLineWidth;
+
+  for (let gx = xMin; gx <= xMax; gx++){
+    const isBorder = (gx === xMin || gx === xMax);
+    ctx.strokeStyle = isBorder ? '#000000' : '#b9b9b9';
+    ctx.beginPath();
+    ctx.moveTo(px(gx), gridTop);
+    ctx.lineTo(px(gx), gridBottom);
+    ctx.stroke();
+  }
+  for (let gy = yMin; gy <= yMax; gy++){
+    const isBorder = (gy === yMin || gy === yMax);
+    ctx.strokeStyle = isBorder ? '#000000' : '#b9b9b9';
+    ctx.beginPath();
+    ctx.moveTo(gridLeft, py(gy));
+    ctx.lineTo(gridRight, py(gy));
+    ctx.stroke();
+  }
+
+  // ---- axes (black, thicker) with arrows ending exactly at the grid border ----
+  const axisLineWidth = Math.max(2, unit / 20);
+  const arrowLen = Math.min(unit * 0.5, outerMargin * 0.9);
+  const arrowWide = arrowLen * 0.32;
+
+  ctx.strokeStyle = '#000000';
+  ctx.fillStyle = '#000000';
+  ctx.lineWidth = axisLineWidth;
+  ctx.lineCap = 'round';
+
+  const italicFont = (sizePx) => `italic 400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
+  const labelFontSize = Math.round(unit * 0.56);
+  const tickFontSize = Math.round(unit * 0.44);
+
+  // x-axis: from left border to right border, arrow tip flush with the right border
+  if (originInRangeY){
+    const y0 = py(0);
+    ctx.beginPath();
+    ctx.moveTo(gridLeft, y0);
+    ctx.lineTo(gridRight, y0);
+    ctx.stroke();
+    drawArrowHead(ctx, gridRight, y0, 0, arrowLen, arrowWide);
+
+    // x label: just inside the border, above the axis line
+    ctx.font = italicFont(labelFontSize);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'right';
+    ctx.fillText('x', gridRight - unit*0.12, y0 - unit*0.22);
+  }
+
+  // y-axis: from bottom border to top border, arrow tip flush with the top border
+  if (originInRangeX){
+    const x0 = px(0);
+    ctx.beginPath();
+    ctx.moveTo(x0, gridBottom);
+    ctx.lineTo(x0, gridTop);
+    ctx.stroke();
+    drawArrowHead(ctx, x0, gridTop, Math.PI/2, arrowLen, arrowWide);
+
+    // y label: just inside the border, to the right of the axis line
+    ctx.font = italicFont(labelFontSize);
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.fillText('y', x0 + unit*0.16, gridTop + unit*0.08);
+  }
+
+  // ---- origin "O" ----
+  if (originInRangeX && originInRangeY){
+    ctx.font = italicFont(tickFontSize);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('O', px(0) - unit*0.14, py(0) + unit*0.10);
+  }
+
+  // ---- tick numbers ----
+  ctx.font = italicFont(tickFontSize);
+  ctx.fillStyle = '#000000';
+
+  // x-axis numbers (below axis)
+  if (originInRangeY){
+    const y0 = py(0);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let gx = xMin; gx <= xMax; gx++){
+      if (gx === 0) continue;
+      if (gx % tickStep !== 0) continue;
+      ctx.fillText(formatNumber(gx), px(gx), y0 + unit*0.18);
+    }
+  }
+
+  // y-axis numbers (left of axis)
+  if (originInRangeX){
+    const x0 = px(0);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let gy = yMin; gy <= yMax; gy++){
+      if (gy === 0) continue;
+      if (gy % tickStep !== 0) continue;
+      ctx.fillText(formatNumber(gy), x0 - unit*0.22, py(gy));
+    }
+  }
+}
+
+function formatNumber(n){
+  // use a proper minus sign (−) instead of hyphen, matching typeset math
+  return n < 0 ? ('\u2212' + Math.abs(n)) : String(n);
+}
+
+function drawArrowHead(ctx, tipX, tipY, angle, len, wide){
+  // angle: 0 = pointing right (+x), PI/2 = pointing up (screen -y)
+  const dx = Math.cos(angle);
+  const dy = -Math.sin(angle);
+  const baseX = tipX - dx*len;
+  const baseY = tipY - dy*len;
+  const perpX = -dy;
+  const perpY = dx;
+
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(baseX + perpX*wide, baseY + perpY*wide);
+  ctx.lineTo(baseX - perpX*wide, baseY - perpY*wide);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function render(){
+  try{
+    const cfg = getConfig();
+    showError('');
+    drawPlane(cfg);
+  } catch(e){
+    showError(e.message);
+  }
+}
+
+function download(type){
+  const name = (document.getElementById('fileName').value || 'coordinate-plane').trim();
+  let mime, ext;
+  if (type === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; }
+  else { mime = 'image/png'; ext = 'png'; }
+
+  const dataUrl = canvas.toDataURL(mime, 0.95);
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = name + '.' + ext;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+document.getElementById('renderBtn').addEventListener('click', render);
+document.getElementById('downloadPng').addEventListener('click', () => download('png'));
+document.getElementById('downloadJpg').addEventListener('click', () => download('jpg'));
+
+// render on load, once the Computer Modern webfont is actually ready
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await document.fonts.load("italic 400 48px 'Computer Modern Serif'");
+    await document.fonts.ready;
+  } catch (e) { /* fall back silently if webfont fails to load */ }
+  render();
+});
+</script>
+
+</body>
+</html>

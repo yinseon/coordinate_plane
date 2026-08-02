@@ -50,6 +50,12 @@
     border-right:1px solid var(--line);
     min-height:calc(100vh - 92px);
   }
+  .panel-right{
+    border-right:none;
+    border-left:1px solid var(--line);
+    width:280px;
+    flex:0 0 280px;
+  }
   .section{
     margin-bottom:26px;
     padding-bottom:22px;
@@ -65,6 +71,57 @@
     color:var(--accent);
     text-transform:uppercase;
     margin:0 0 14px;
+  }
+  .label-select{
+    display:flex;
+    gap:6px;
+  }
+  .label-select-btn{
+    flex:1;
+    padding:9px 0;
+    font-style:italic;
+    font-family:'Times New Roman', serif;
+    font-size:18px;
+    background:#fff;
+    border:1px solid #cfcabd;
+    border-radius:5px;
+    color:var(--ink);
+  }
+  .label-select-btn:hover{
+    background:var(--accent-soft);
+  }
+  .label-select-btn.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .pos-pad{
+    display:grid;
+    grid-template-columns:34px 34px 34px;
+    grid-template-rows:34px 34px 34px;
+    gap:4px;
+  }
+  .pos-btn{
+    grid-column:2; grid-row:2;
+    padding:0;
+    font-size:13px;
+    line-height:1;
+    background:#fff;
+    border:1px solid #cfcabd;
+    color:var(--accent);
+    border-radius:4px;
+  }
+  .pos-btn:hover{
+    background:var(--accent-soft);
+  }
+  .pos-btn[data-dir="up"]{grid-column:2; grid-row:1;}
+  .pos-btn[data-dir="left"]{grid-column:1; grid-row:2;}
+  .pos-btn[data-dir="right"]{grid-column:3; grid-row:2;}
+  .pos-btn[data-dir="down"]{grid-column:2; grid-row:3;}
+  .pos-btn[data-dir="reset"]{
+    grid-column:2; grid-row:2;
+    font-size:10px;
+    color:#a8a398;
   }
   .field{
     margin-bottom:16px;
@@ -208,20 +265,6 @@
       </div>
     </div>
 
-    <div class="section">
-      <p class="section-title">폰트 크기</p>
-      <div class="field">
-        <label>x, y, O(원점) 크기 (px)</label>
-        <input type="number" id="labelFontPx" value="40" min="8" max="200" step="1">
-      </div>
-
-      <div class="field">
-        <label>축 위의 숫자 크기 (px)</label>
-        <input type="number" id="tickFontPx" value="27" min="6" max="200" step="1">
-        <div class="hint">모눈 한 칸 크기나 눈금 간격을 바꿔도 이 값들은 그대로 유지되니, 필요하면 직접 조정해 주세요.</div>
-      </div>
-    </div>
-
     <button class="btn-primary" id="renderBtn">좌표평면 그리기</button>
     <div class="error" id="errorBox"></div>
 
@@ -245,6 +288,45 @@
       <canvas id="plane"></canvas>
     </div>
   </div>
+
+  <div class="panel panel-right">
+    <div class="section">
+      <p class="section-title">폰트 크기</p>
+      <div class="field">
+        <label>x, y, O(원점) 크기 (px)</label>
+        <input type="number" id="labelFontPx" value="40" min="8" max="200" step="1">
+      </div>
+
+      <div class="field">
+        <label>축 위의 숫자 크기 (px)</label>
+        <input type="number" id="tickFontPx" value="27" min="6" max="200" step="1">
+        <div class="hint">모눈 한 칸 크기나 눈금 간격을 바꿔도 이 값들은 그대로 유지되니, 필요하면 직접 조정해 주세요.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="section-title">위치</p>
+      <div class="field">
+        <label>이동할 글자 선택</label>
+        <div class="label-select" id="labelSelect">
+          <button type="button" class="label-select-btn active" data-label="x">x</button>
+          <button type="button" class="label-select-btn" data-label="y">y</button>
+          <button type="button" class="label-select-btn" data-label="O">O</button>
+        </div>
+      </div>
+
+      <div class="field" style="display:flex; justify-content:center;">
+        <div class="pos-pad pos-pad-lg">
+          <button type="button" class="pos-btn" data-dir="up">▲</button>
+          <button type="button" class="pos-btn" data-dir="left">◀</button>
+          <button type="button" class="pos-btn" data-dir="reset" title="초기화">●</button>
+          <button type="button" class="pos-btn" data-dir="right">▶</button>
+          <button type="button" class="pos-btn" data-dir="down">▼</button>
+        </div>
+      </div>
+      <div class="hint">위에서 선택한 글자만 움직입니다. 버튼을 누르면 바로 반영됩니다. 가운데 ● 버튼은 초기화입니다.</div>
+    </div>
+  </div>
 </div>
 
 <footer>Coordinate Plane Generator · Static page, all rendering happens in your browser.</footer>
@@ -253,6 +335,14 @@
 const canvas = document.getElementById('plane');
 const ctx = canvas.getContext('2d');
 const errorBox = document.getElementById('errorBox');
+
+// x, y, O position offsets (in px), adjustable via the '위치' directional pads
+const labelOffsets = {
+  x: {dx: 0, dy: 0},
+  y: {dx: 0, dy: 0},
+  O: {dx: 0, dy: 0}
+};
+const NUDGE_STEP = 2;
 
 function showError(msg){
   errorBox.textContent = msg;
@@ -379,7 +469,7 @@ function drawPlane(cfg, opts){
     c.font = italicFont(labelFontSize);
     c.textBaseline = 'top';
     c.textAlign = 'right';
-    c.fillText('x', gridRight - LABEL_GAP, y0 + LABEL_GAP);
+    c.fillText('x', gridRight - LABEL_GAP + labelOffsets.x.dx, y0 + LABEL_GAP + labelOffsets.x.dy);
   }
 
   // y-axis: from bottom border to top border, arrow tip flush with the top border
@@ -395,7 +485,7 @@ function drawPlane(cfg, opts){
     c.font = italicFont(labelFontSize);
     c.textBaseline = 'top';
     c.textAlign = 'right';
-    c.fillText('y', x0 - LABEL_GAP, gridTop + LABEL_GAP);
+    c.fillText('y', x0 - LABEL_GAP + labelOffsets.y.dx, gridTop + LABEL_GAP + labelOffsets.y.dy);
   }
 
   // ---- origin "O" ----
@@ -403,7 +493,7 @@ function drawPlane(cfg, opts){
     c.font = italicFont(labelFontSize);
     c.textAlign = 'right';
     c.textBaseline = 'top';
-    c.fillText('O', px(0) - LABEL_GAP, py(0) + LABEL_GAP);
+    c.fillText('O', px(0) - LABEL_GAP + labelOffsets.O.dx, py(0) + LABEL_GAP + labelOffsets.O.dy);
   }
 
   // ---- tick numbers ----
@@ -503,6 +593,27 @@ function download(type){
 document.getElementById('renderBtn').addEventListener('click', render);
 document.getElementById('downloadPng').addEventListener('click', () => download('png'));
 document.getElementById('downloadJpg').addEventListener('click', () => download('jpg'));
+
+let currentLabel = 'x';
+document.querySelectorAll('.label-select-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentLabel = btn.dataset.label;
+    document.querySelectorAll('.label-select-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
+document.querySelectorAll('.pos-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dir = btn.dataset.dir;
+    const o = labelOffsets[currentLabel];
+    if (dir === 'up') o.dy -= NUDGE_STEP;
+    else if (dir === 'down') o.dy += NUDGE_STEP;
+    else if (dir === 'left') o.dx -= NUDGE_STEP;
+    else if (dir === 'right') o.dx += NUDGE_STEP;
+    else if (dir === 'reset') { o.dx = 0; o.dy = 0; }
+    render();
+  });
+});
 
 // render on load, once the Computer Modern webfont is actually ready
 window.addEventListener('DOMContentLoaded', async () => {

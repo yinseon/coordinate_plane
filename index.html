@@ -356,11 +356,11 @@ function drawPlane(cfg){
     ctx.stroke();
     drawArrowHead(ctx, gridRight, y0, 0, arrowLen, arrowWide);
 
-    // x label: just inside the border, above the axis line
+    // x label: just inside the border, below the axis line
     ctx.font = italicFont(labelFontSize);
-    ctx.textBaseline = 'alphabetic';
+    ctx.textBaseline = 'top';
     ctx.textAlign = 'right';
-    ctx.fillText('x', gridRight - unit*0.12, y0 - unit*0.22);
+    ctx.fillText('x', gridRight - unit*0.12, y0 + unit*0.10);
   }
 
   // y-axis: from bottom border to top border, arrow tip flush with the top border
@@ -372,11 +372,11 @@ function drawPlane(cfg){
     ctx.stroke();
     drawArrowHead(ctx, x0, gridTop, Math.PI/2, arrowLen, arrowWide);
 
-    // y label: just inside the border, to the right of the axis line
+    // y label: just inside the border, to the left of the axis line
     ctx.font = italicFont(labelFontSize);
     ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.fillText('y', x0 + unit*0.16, gridTop + unit*0.08);
+    ctx.textAlign = 'right';
+    ctx.fillText('y', x0 - unit*0.16, gridTop + unit*0.08);
   }
 
   // ---- origin "O" ----

@@ -334,8 +334,8 @@ function drawPlane(cfg){
 
   // ---- axes (black, thicker) with arrows ending exactly at the grid border ----
   const axisLineWidth = Math.max(2, unit / 20);
-  const arrowLen = Math.min(unit * 0.5, outerMargin * 0.9);
-  const arrowWide = arrowLen * 0.32;
+  const arrowLen = Math.min(unit * 0.55, outerMargin * 0.9);
+  const arrowWide = arrowLen * 0.17;
 
   ctx.strokeStyle = '#000000';
   ctx.fillStyle = '#000000';
@@ -360,7 +360,7 @@ function drawPlane(cfg){
     ctx.font = italicFont(labelFontSize);
     ctx.textBaseline = 'top';
     ctx.textAlign = 'right';
-    ctx.fillText('x', gridRight - unit*0.12, y0 + unit*0.10);
+    ctx.fillText('x', gridRight - labelFontSize*0.144, y0 + labelFontSize*0.12);
   }
 
   // y-axis: from bottom border to top border, arrow tip flush with the top border
@@ -376,7 +376,7 @@ function drawPlane(cfg){
     ctx.font = italicFont(labelFontSize);
     ctx.textBaseline = 'top';
     ctx.textAlign = 'right';
-    ctx.fillText('y', x0 - unit*0.16, gridTop + unit*0.08);
+    ctx.fillText('y', x0 - labelFontSize*0.192, gridTop + labelFontSize*0.096);
   }
 
   // ---- origin "O" ----
@@ -384,7 +384,7 @@ function drawPlane(cfg){
     ctx.font = italicFont(labelFontSize);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
-    ctx.fillText('O', px(0) - unit*0.14, py(0) + unit*0.10);
+    ctx.fillText('O', px(0) - labelFontSize*0.168, py(0) + labelFontSize*0.12);
   }
 
   // ---- tick numbers ----
@@ -399,7 +399,7 @@ function drawPlane(cfg){
     for (let gx = xMin; gx <= xMax; gx++){
       if (gx === 0) continue;
       if (gx % tickStep !== 0) continue;
-      ctx.fillText(formatNumber(gx), px(gx), y0 + unit*0.18);
+      ctx.fillText(formatNumber(gx), px(gx), y0 + tickFontSize*0.32);
     }
   }
 
@@ -411,7 +411,7 @@ function drawPlane(cfg){
     for (let gy = yMin; gy <= yMax; gy++){
       if (gy === 0) continue;
       if (gy % tickStep !== 0) continue;
-      ctx.fillText(formatNumber(gy), x0 - unit*0.22, py(gy));
+      ctx.fillText(formatNumber(gy), x0 - tickFontSize*0.391, py(gy));
     }
   }
 }

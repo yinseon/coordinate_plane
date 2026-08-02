@@ -335,17 +335,23 @@ function drawPlane(cfg){
   // ---- axes (black, thicker) with arrows ending exactly at the grid border ----
   const axisLineWidth = Math.max(2, unit / 20);
   const arrowLen = Math.min(unit * 0.55, outerMargin * 0.9);
-  const arrowWide = arrowLen * 0.17;
+  const arrowWide = Math.max(arrowLen * 0.24, axisLineWidth * 3);
 
   ctx.strokeStyle = '#000000';
   ctx.fillStyle = '#000000';
   ctx.lineWidth = axisLineWidth;
-  ctx.lineCap = 'round';
+  ctx.lineCap = 'butt';
 
   const italicFont = (sizePx) => `italic 400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
   const romanFont = (sizePx) => `400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
   const labelFontSize = labelFontPx; // O, x, y — all the same size, set directly by the user
   const tickFontSize = tickFontPx;   // tick numbers — set directly by the user
+
+  // Fixed gaps (NOT scaled by font size or cell size) so the edge of each
+  // label that sits against the axis/border stays anchored in place; only
+  // the far edge grows or shrinks as the font size changes.
+  const LABEL_GAP = 5;
+  const TICK_GAP = 4;
 
   // x-axis: from left border to right border, arrow tip flush with the right border
   if (originInRangeY){
@@ -360,7 +366,7 @@ function drawPlane(cfg){
     ctx.font = italicFont(labelFontSize);
     ctx.textBaseline = 'top';
     ctx.textAlign = 'right';
-    ctx.fillText('x', gridRight - labelFontSize*0.144, y0 + labelFontSize*0.12);
+    ctx.fillText('x', gridRight - LABEL_GAP, y0 + LABEL_GAP);
   }
 
   // y-axis: from bottom border to top border, arrow tip flush with the top border
@@ -376,7 +382,7 @@ function drawPlane(cfg){
     ctx.font = italicFont(labelFontSize);
     ctx.textBaseline = 'top';
     ctx.textAlign = 'right';
-    ctx.fillText('y', x0 - labelFontSize*0.192, gridTop + labelFontSize*0.096);
+    ctx.fillText('y', x0 - LABEL_GAP, gridTop + LABEL_GAP);
   }
 
   // ---- origin "O" ----
@@ -384,7 +390,7 @@ function drawPlane(cfg){
     ctx.font = italicFont(labelFontSize);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
-    ctx.fillText('O', px(0) - labelFontSize*0.168, py(0) + labelFontSize*0.12);
+    ctx.fillText('O', px(0) - LABEL_GAP, py(0) + LABEL_GAP);
   }
 
   // ---- tick numbers ----
@@ -399,7 +405,7 @@ function drawPlane(cfg){
     for (let gx = xMin; gx <= xMax; gx++){
       if (gx === 0) continue;
       if (gx % tickStep !== 0) continue;
-      ctx.fillText(formatNumber(gx), px(gx), y0 + tickFontSize*0.32);
+      ctx.fillText(formatNumber(gx), px(gx), y0 + TICK_GAP);
     }
   }
 
@@ -411,7 +417,7 @@ function drawPlane(cfg){
     for (let gy = yMin; gy <= yMax; gy++){
       if (gy === 0) continue;
       if (gy % tickStep !== 0) continue;
-      ctx.fillText(formatNumber(gy), x0 - tickFontSize*0.391, py(gy));
+      ctx.fillText(formatNumber(gy), x0 - TICK_GAP, py(gy));
     }
   }
 }

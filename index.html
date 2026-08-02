@@ -234,6 +234,10 @@
       <button class="btn-secondary" id="downloadPng">PNG로 저장</button>
       <button class="btn-secondary" id="downloadJpg">JPG로 저장</button>
     </div>
+    <label style="display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; color:#5a564d;">
+      <input type="checkbox" id="transparentPng" checked style="margin:0;">
+      PNG는 배경 투명하게 저장
+    </label>
   </div>
 
   <div class="stage">
@@ -278,7 +282,12 @@ function getConfig(){
   return {xMin,xMax,yMin,yMax,tickStep,cellPx,labelFontPx,tickFontPx};
 }
 
-function drawPlane(cfg){
+function drawPlane(cfg, opts){
+  opts = opts || {};
+  const cv = opts.targetCanvas || canvas;
+  const c = opts.targetCtx || ctx;
+  const transparent = !!opts.transparent;
+
   const {xMin,xMax,yMin,yMax,tickStep,cellPx,labelFontPx,tickFontPx} = cfg;
 
   const unit = cellPx;
@@ -290,15 +299,19 @@ function drawPlane(cfg){
 
   // retina-ish scale for crisper export
   const scale = 2;
-  canvas.width = W * scale;
-  canvas.height = H * scale;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(scale,0,0,scale,0,0);
+  cv.width = W * scale;
+  cv.height = H * scale;
+  cv.style.width = W + 'px';
+  cv.style.height = H + 'px';
+  c.setTransform(scale,0,0,scale,0,0);
 
-  // background
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0,0,W,H);
+  // background (skipped entirely when exporting a transparent PNG)
+  if (!transparent){
+    c.fillStyle = '#ffffff';
+    c.fillRect(0,0,W,H);
+  } else {
+    c.clearRect(0,0,W,H);
+  }
 
   const gridLeft = outerMargin;
   const gridRight = outerMargin + gridW;
@@ -313,23 +326,23 @@ function drawPlane(cfg){
 
   // ---- grid lines (gray) + outer border (black, same thickness) ----
   const gridLineWidth = Math.max(1, unit / 48);
-  ctx.lineWidth = gridLineWidth;
+  c.lineWidth = gridLineWidth;
 
   for (let gx = xMin; gx <= xMax; gx++){
     const isBorder = (gx === xMin || gx === xMax);
-    ctx.strokeStyle = isBorder ? '#000000' : '#b9b9b9';
-    ctx.beginPath();
-    ctx.moveTo(px(gx), gridTop);
-    ctx.lineTo(px(gx), gridBottom);
-    ctx.stroke();
+    c.strokeStyle = isBorder ? '#000000' : '#b9b9b9';
+    c.beginPath();
+    c.moveTo(px(gx), gridTop);
+    c.lineTo(px(gx), gridBottom);
+    c.stroke();
   }
   for (let gy = yMin; gy <= yMax; gy++){
     const isBorder = (gy === yMin || gy === yMax);
-    ctx.strokeStyle = isBorder ? '#000000' : '#b9b9b9';
-    ctx.beginPath();
-    ctx.moveTo(gridLeft, py(gy));
-    ctx.lineTo(gridRight, py(gy));
-    ctx.stroke();
+    c.strokeStyle = isBorder ? '#000000' : '#b9b9b9';
+    c.beginPath();
+    c.moveTo(gridLeft, py(gy));
+    c.lineTo(gridRight, py(gy));
+    c.stroke();
   }
 
   // ---- axes (black, thicker) with arrows ending exactly at the grid border ----
@@ -337,10 +350,10 @@ function drawPlane(cfg){
   const arrowLen = Math.min(unit * 0.55, outerMargin * 0.9);
   const arrowWide = Math.max(arrowLen * 0.24, axisLineWidth * 3);
 
-  ctx.strokeStyle = '#000000';
-  ctx.fillStyle = '#000000';
-  ctx.lineWidth = axisLineWidth;
-  ctx.lineCap = 'butt';
+  c.strokeStyle = '#000000';
+  c.fillStyle = '#000000';
+  c.lineWidth = axisLineWidth;
+  c.lineCap = 'butt';
 
   const italicFont = (sizePx) => `italic 400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
   const romanFont = (sizePx) => `400 ${sizePx}px 'Computer Modern Serif', 'Times New Roman', serif`;
@@ -356,68 +369,68 @@ function drawPlane(cfg){
   // x-axis: from left border to right border, arrow tip flush with the right border
   if (originInRangeY){
     const y0 = py(0);
-    ctx.beginPath();
-    ctx.moveTo(gridLeft, y0);
-    ctx.lineTo(gridRight, y0);
-    ctx.stroke();
-    drawArrowHead(ctx, gridRight, y0, 0, arrowLen, arrowWide);
+    c.beginPath();
+    c.moveTo(gridLeft, y0);
+    c.lineTo(gridRight, y0);
+    c.stroke();
+    drawArrowHead(c, gridRight, y0, 0, arrowLen, arrowWide);
 
     // x label: just inside the border, below the axis line
-    ctx.font = italicFont(labelFontSize);
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'right';
-    ctx.fillText('x', gridRight - LABEL_GAP, y0 + LABEL_GAP);
+    c.font = italicFont(labelFontSize);
+    c.textBaseline = 'top';
+    c.textAlign = 'right';
+    c.fillText('x', gridRight - LABEL_GAP, y0 + LABEL_GAP);
   }
 
   // y-axis: from bottom border to top border, arrow tip flush with the top border
   if (originInRangeX){
     const x0 = px(0);
-    ctx.beginPath();
-    ctx.moveTo(x0, gridBottom);
-    ctx.lineTo(x0, gridTop);
-    ctx.stroke();
-    drawArrowHead(ctx, x0, gridTop, Math.PI/2, arrowLen, arrowWide);
+    c.beginPath();
+    c.moveTo(x0, gridBottom);
+    c.lineTo(x0, gridTop);
+    c.stroke();
+    drawArrowHead(c, x0, gridTop, Math.PI/2, arrowLen, arrowWide);
 
     // y label: just inside the border, to the left of the axis line
-    ctx.font = italicFont(labelFontSize);
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'right';
-    ctx.fillText('y', x0 - LABEL_GAP, gridTop + LABEL_GAP);
+    c.font = italicFont(labelFontSize);
+    c.textBaseline = 'top';
+    c.textAlign = 'right';
+    c.fillText('y', x0 - LABEL_GAP, gridTop + LABEL_GAP);
   }
 
   // ---- origin "O" ----
   if (originInRangeX && originInRangeY){
-    ctx.font = italicFont(labelFontSize);
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillText('O', px(0) - LABEL_GAP, py(0) + LABEL_GAP);
+    c.font = italicFont(labelFontSize);
+    c.textAlign = 'right';
+    c.textBaseline = 'top';
+    c.fillText('O', px(0) - LABEL_GAP, py(0) + LABEL_GAP);
   }
 
   // ---- tick numbers ----
-  ctx.font = romanFont(tickFontSize);
-  ctx.fillStyle = '#000000';
+  c.font = romanFont(tickFontSize);
+  c.fillStyle = '#000000';
 
   // x-axis numbers (below axis)
   if (originInRangeY){
     const y0 = py(0);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+    c.textAlign = 'center';
+    c.textBaseline = 'top';
     for (let gx = xMin; gx <= xMax; gx++){
       if (gx === 0) continue;
       if (gx % tickStep !== 0) continue;
-      ctx.fillText(formatNumber(gx), px(gx), y0 + TICK_GAP);
+      c.fillText(formatNumber(gx), px(gx), y0 + TICK_GAP);
     }
   }
 
   // y-axis numbers (left of axis)
   if (originInRangeX){
     const x0 = px(0);
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
+    c.textAlign = 'right';
+    c.textBaseline = 'middle';
     for (let gy = yMin; gy <= yMax; gy++){
       if (gy === 0) continue;
       if (gy % tickStep !== 0) continue;
-      ctx.fillText(formatNumber(gy), x0 - TICK_GAP, py(gy));
+      c.fillText(formatNumber(gy), x0 - TICK_GAP, py(gy));
     }
   }
 }
@@ -455,12 +468,30 @@ function render(){
 }
 
 function download(type){
-  const name = (document.getElementById('fileName').value || 'coordinate-plane').trim();
-  let mime, ext;
-  if (type === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; }
-  else { mime = 'image/png'; ext = 'png'; }
+  let cfg;
+  try{
+    cfg = getConfig();
+    showError('');
+  } catch(e){
+    showError(e.message);
+    return;
+  }
 
-  const dataUrl = canvas.toDataURL(mime, 0.95);
+  const name = (document.getElementById('fileName').value || 'coordinate-plane').trim();
+  let mime, ext, transparent;
+  if (type === 'jpg'){
+    mime = 'image/jpeg'; ext = 'jpg'; transparent = false;
+  } else {
+    mime = 'image/png'; ext = 'png';
+    transparent = document.getElementById('transparentPng').checked;
+  }
+
+  // draw to a throwaway offscreen canvas so the on-screen preview is untouched
+  const offCanvas = document.createElement('canvas');
+  const offCtx = offCanvas.getContext('2d');
+  drawPlane(cfg, {targetCanvas: offCanvas, targetCtx: offCtx, transparent});
+
+  const dataUrl = offCanvas.toDataURL(mime, 0.95);
   const a = document.createElement('a');
   a.href = dataUrl;
   a.download = name + '.' + ext;
